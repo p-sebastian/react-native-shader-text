@@ -12,6 +12,9 @@ mock.module('react-native-nitro-modules', () => ({
 }))
 
 mock.module('react-native', () => ({
+  AppState: {
+    addEventListener: () => ({remove: () => undefined}),
+  },
   Platform: {OS: 'ios'},
   StyleSheet: {
     create: <TStyles,>(styles: TStyles) => styles,
