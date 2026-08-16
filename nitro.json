@@ -1,0 +1,20 @@
+{
+  "$schema": "https://nitro.margelo.com/nitro.schema.json",
+  "cxxNamespace": ["reactnative", "shadertext"],
+  "ios": {
+    "iosModuleName": "ReactNativeShaderText"
+  },
+  "android": {
+    "androidNamespace": ["reactnative", "shadertext"],
+    "androidCxxLibName": "ReactNativeShaderText"
+  },
+  "autolinking": {
+    "ShaderText": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridShaderText"
+      }
+    }
+  },
+  "ignorePaths": ["**/node_modules"]
+}

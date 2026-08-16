@@ -1,0 +1,59 @@
+# Copyright (c) 2026 Sebastian Peñafiel (@p-sebastian)
+# SPDX-License-Identifier: MIT
+
+name: bootstrap npm 0.1.0
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: npm-bootstrap
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main' && github.actor == 'p-sebastian'
+    environment: npm-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.3.0
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version-file: package.json
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: npm install --global npm@11.11.1
+      - name: Verify the synchronized 0.1.0 bootstrap source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(node -p "require('./package.json').name")" = '@p-sebastian/react-native-shader-text'
+          test "$(node -p "require('./package.json').version")" = '0.1.0'
+          test -z "$(npm view @p-sebastian/react-native-shader-text version 2>/dev/null || true)"
+          gh api -H 'Accept: application/vnd.github+json' "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/check-runs" \
+            --jq '.check_runs[] | select(.name == "required" and .conclusion == "success")' | grep -q .
+          gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/status" \
+            --jq '.statuses[] | select(.context == "sync/vellum" and .state == "success")' | grep -q .
+      - run: bun install --frozen-lockfile
+      - run: bun run lint
+      - run: bun run typecheck
+      - run: bun run test
+      - run: bun run codegen:check
+      - run: bun run build
+      - run: bun run pack:inspect
+      - run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_BOOTSTRAP_TOKEN }}

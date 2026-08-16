@@ -1,0 +1,39 @@
+# Copyright (c) 2026 Sebastian Peñafiel (@p-sebastian)
+# SPDX-License-Identifier: MIT
+
+name: Bug report
+description: Report a reproducible package correctness problem.
+title: "[Bug]: "
+body:
+  - type: input
+    id: reproduction
+    attributes:
+      label: Public minimal Expo reproduction
+      description: Link a minimal public repository that reproduces the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Exact environment
+      description: Include package, Nitro, Expo, React Native, React, iOS, and Xcode versions.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and relevant logs
+    validations:
+      required: true

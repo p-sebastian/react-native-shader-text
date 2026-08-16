@@ -1,0 +1,8 @@
+# Copyright (c) 2026 Sebastian Peñafiel (@p-sebastian)
+# SPDX-License-Identifier: MIT
+
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability privately
+    url: https://github.com/p-sebastian/react-native-shader-text/security/advisories/new
+    about: Do not disclose security vulnerabilities in a public issue.

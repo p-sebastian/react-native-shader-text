@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "Shader Text Example",
+    "slug": "react-native-shader-text-example",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "bundleIdentifier": "com.psebastian.reactnativeshadertext.example",
+      "supportsTablet": false
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "18.0"
+          }
+        }
+      ]
+    ]
+  }
+}

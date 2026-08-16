@@ -1,0 +1,88 @@
+{
+  "name": "@p-sebastian/react-native-shader-text",
+  "version": "0.1.0",
+  "packageManager": "bun@1.3.14",
+  "description": "An iOS SwiftUI text view with selectable Metal shader runs for Expo and React Native.",
+  "type": "module",
+  "main": "build/index.js",
+  "module": "build/index.js",
+  "react-native": "build/index.js",
+  "types": "build/index.d.ts",
+  "source": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./build/index.d.ts",
+      "react-native": "./build/index.js",
+      "import": "./build/index.js",
+      "default": "./build/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "build",
+    "ios",
+    "nitrogen/generated",
+    "nitro.json",
+    "ReactNativeShaderText.podspec",
+    "README.md",
+    "LICENSE"
+  ],
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "rm -rf build && tsc -p tsconfig.build.json",
+    "codegen": "nitrogen",
+    "codegen:check": "bun scripts/check-codegen.ts",
+    "consumer:build": "bun scripts/build-consumer.ts",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json && bun --cwd apps/example typecheck",
+    "test": "bun test src/shader-text.test.tsx scripts/release-version.test.ts && swift test",
+    "pack:inspect": "bun scripts/inspect-pack.ts",
+    "release:prepare": "bun scripts/prepare-release.ts"
+  },
+  "keywords": [
+    "expo",
+    "ios",
+    "metal",
+    "nitro",
+    "react-native",
+    "shader",
+    "text"
+  ],
+  "author": "Sebastian Peñafiel (@p-sebastian)",
+  "contributors": [],
+  "license": "MIT",
+  "homepage": "https://github.com/p-sebastian/react-native-shader-text#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/p-sebastian/react-native-shader-text.git"
+  },
+  "bugs": {
+    "url": "https://github.com/p-sebastian/react-native-shader-text/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "peerDependencies": {
+    "expo": ">=57 <58",
+    "react": ">=19.2 <20",
+    "react-native": ">=0.86 <0.87",
+    "react-native-nitro-modules": ">=0.35 <0.36"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.14",
+    "@types/react": "~19.2.14",
+    "@types/react-test-renderer": "^19.1.0",
+    "eslint": "^9.25.0",
+    "eslint-config-expo": "~57.0.1",
+    "expo": "~57.0.13",
+    "nitrogen": "0.35.9",
+    "react": "19.2.3",
+    "react-native": "0.86.2",
+    "react-native-nitro-modules": "0.35.9",
+    "react-test-renderer": "19.2.3",
+    "typescript": "~6.0.3"
+  }
+}

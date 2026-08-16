@@ -1,0 +1,85 @@
+# Copyright (c) 2026 Sebastian Peñafiel (@p-sebastian)
+# SPDX-License-Identifier: MIT
+
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  required:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - name: Reject unpromoted pull requests without executing their code
+        if: >-
+          github.event_name == 'pull_request' &&
+          (github.event.pull_request.user.login != 'p-sebastian' ||
+          github.event.pull_request.head.repo.full_name != github.repository)
+        run: exit 1
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.3.0
+        if: >-
+          github.event_name != 'pull_request' ||
+          (github.event.pull_request.user.login == 'p-sebastian' &&
+          github.event.pull_request.head.repo.full_name == github.repository)
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        if: >-
+          github.event_name != 'pull_request' ||
+          (github.event.pull_request.user.login == 'p-sebastian' &&
+          github.event.pull_request.head.repo.full_name == github.repository)
+        with:
+          bun-version-file: package.json
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
+        if: >-
+          github.event_name != 'pull_request' ||
+          (github.event.pull_request.user.login == 'p-sebastian' &&
+          github.event.pull_request.head.repo.full_name == github.repository)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: >-
+          github.event_name != 'pull_request' ||
+          (github.event.pull_request.user.login == 'p-sebastian' &&
+          github.event.pull_request.head.repo.full_name == github.repository)
+        run: bun install --frozen-lockfile
+      - if: >-
+          github.event_name != 'pull_request' ||
+          (github.event.pull_request.user.login == 'p-sebastian' &&
+          github.event.pull_request.head.repo.full_name == github.repository)
+        run: bun run lint
+      - if: >-
+          github.event_name != 'pull_request' ||
+          (github.event.pull_request.user.login == 'p-sebastian' &&
+          github.event.pull_request.head.repo.full_name == github.repository)
+        run: bun run typecheck
+      - if: >-
+          github.event_name != 'pull_request' ||
+          (github.event.pull_request.user.login == 'p-sebastian' &&
+          github.event.pull_request.head.repo.full_name == github.repository)
+        run: bun run test
+      - if: >-
+          github.event_name != 'pull_request' ||
+          (github.event.pull_request.user.login == 'p-sebastian' &&
+          github.event.pull_request.head.repo.full_name == github.repository)
+        run: bun run codegen:check
+      - if: >-
+          github.event_name != 'pull_request' ||
+          (github.event.pull_request.user.login == 'p-sebastian' &&
+          github.event.pull_request.head.repo.full_name == github.repository)
+        run: bun run build && git diff --exit-code
+      - if: >-
+          github.event_name != 'pull_request' ||
+          (github.event.pull_request.user.login == 'p-sebastian' &&
+          github.event.pull_request.head.repo.full_name == github.repository)
+        run: bun run pack:inspect
+      - if: >-
+          github.event_name != 'pull_request' ||
+          (github.event.pull_request.user.login == 'p-sebastian' &&
+          github.event.pull_request.head.repo.full_name == github.repository)
+        run: pod lib lint ReactNativeShaderText.podspec --quick --allow-warnings

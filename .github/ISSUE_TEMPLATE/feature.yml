@@ -1,0 +1,19 @@
+# Copyright (c) 2026 Sebastian Peñafiel (@p-sebastian)
+# SPDX-License-Identifier: MIT
+
+name: Feature proposal
+description: Propose a concrete addition to the public package contract.
+title: "[Feature]: "
+body:
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Concrete use case
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: Proposed code example
+    validations:
+      required: true

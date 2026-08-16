@@ -1,0 +1,184 @@
+# Copyright (c) 2026 Sebastian Peñafiel (@p-sebastian)
+# SPDX-License-Identifier: MIT
+
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact committed stable version
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-release
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    if: github.ref == 'refs/heads/main' && github.actor == 'p-sebastian'
+    runs-on: ubuntu-latest
+    outputs:
+      already-published: ${{ steps.state.outputs.already-published }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.3.0
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: npm install --global npm@11.11.1
+      - run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - id: version
+        env:
+          CONFIRMED_VERSION: ${{ inputs.version }}
+        run: |
+          COMMITTED_VERSION=$(node -p "require('./package.json').version")
+          test "$CONFIRMED_VERSION" = "$COMMITTED_VERSION"
+          printf '%s' "$CONFIRMED_VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'
+          echo "version=$CONFIRMED_VERSION" >> "$GITHUB_OUTPUT"
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api -H 'Accept: application/vnd.github+json' "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/check-runs" \
+            --jq '.check_runs[] | select(.name == "required" and .conclusion == "success")' | grep -q .
+          gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/status" \
+            --jq '.statuses[] | select(.context == "sync/vellum" and .state == "success")' | grep -q .
+      - id: state
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          TAG_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/v${VERSION}" --jq .object.sha 2>/dev/null || true)
+          test -z "$TAG_SHA" || test "$TAG_SHA" = "$GITHUB_SHA"
+          PUBLISHED=$(npm view "@p-sebastian/react-native-shader-text@${VERSION}" version 2>/dev/null || true)
+          test -z "$PUBLISHED" || test "$PUBLISHED" = "$VERSION"
+          if test -n "$PUBLISHED"; then
+            test -n "$TAG_SHA"
+            echo 'already-published=true' >> "$GITHUB_OUTPUT"
+          else
+            LATEST=$(npm view @p-sebastian/react-native-shader-text version)
+            node -e 'const [a,b]=process.argv.slice(1).map(v=>v.split(".").map(Number)); if (!(a[0]>b[0] || a[0]===b[0]&&a[1]>b[1] || a[0]===b[0]&&a[1]===b[1]&&a[2]>b[2])) process.exit(1)' "$VERSION" "$LATEST"
+            echo 'already-published=false' >> "$GITHUB_OUTPUT"
+          fi
+
+  native-validation:
+    needs: preflight
+    runs-on: [self-hosted, mac-mini]
+    environment: native-validation
+    permissions:
+      contents: read
+    timeout-minutes: 60
+    env:
+      VALIDATION_DIRECTORY: validation-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.3.0
+        with:
+          clean: true
+          path: ${{ env.VALIDATION_DIRECTORY }}
+      - name: Verify provisioned toolchain
+        working-directory: ${{ env.VALIDATION_DIRECTORY }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(bun --version)" = '1.3.14'
+          node --version
+          ruby --version
+          xcodebuild -version
+          xcrun simctl list devices available
+          agent-device --version
+      - working-directory: ${{ env.VALIDATION_DIRECTORY }}
+        run: bun install --frozen-lockfile
+      - working-directory: ${{ env.VALIDATION_DIRECTORY }}
+        run: bun run lint
+      - working-directory: ${{ env.VALIDATION_DIRECTORY }}
+        run: bun run typecheck
+      - working-directory: ${{ env.VALIDATION_DIRECTORY }}
+        run: bun run test
+      - working-directory: ${{ env.VALIDATION_DIRECTORY }}
+        run: bun run codegen:check
+      - working-directory: ${{ env.VALIDATION_DIRECTORY }}
+        run: bun run build && git diff --exit-code
+      - working-directory: ${{ env.VALIDATION_DIRECTORY }}
+        run: bun run pack:inspect
+      - working-directory: ${{ env.VALIDATION_DIRECTORY }}
+        run: pod lib lint ReactNativeShaderText.podspec --quick --allow-warnings
+      - working-directory: ${{ env.VALIDATION_DIRECTORY }}
+        run: bun run consumer:build
+      - if: always()
+        run: rm -rf -- "$GITHUB_WORKSPACE/$VALIDATION_DIRECTORY"
+
+  tag:
+    needs: [preflight, native-validation]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.preflight.outputs.version }}
+        run: |
+          EXISTING=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/v${VERSION}" --jq .object.sha 2>/dev/null || true)
+          test -z "$EXISTING" || test "$EXISTING" = "$GITHUB_SHA"
+          test -n "$EXISTING" || gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" -f ref="refs/tags/v${VERSION}" -f sha="$GITHUB_SHA"
+
+  publish:
+    needs: [preflight, tag]
+    if: needs.preflight.outputs.already-published != 'true'
+    environment: npm-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.3.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version-file: package.json
+      - run: npm install --global npm@11.11.1
+      - run: bun install --frozen-lockfile
+      - run: bun run lint
+      - run: bun run typecheck
+      - run: bun run test
+      - run: bun run codegen:check
+      - run: bun run build
+      - run: bun run pack:inspect
+      - run: npm publish --access public --provenance
+
+  finalize:
+    needs: [preflight, publish, tag]
+    if: >-
+      always() &&
+      needs.preflight.result == 'success' &&
+      needs.tag.result == 'success' &&
+      (needs.publish.result == 'success' || needs.preflight.outputs.already-published == 'true')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.preflight.outputs.version }}
+        run: |
+          test "$(npm view "@p-sebastian/react-native-shader-text@${VERSION}" version)" = "$VERSION"
+          test "$(npm view "@p-sebastian/react-native-shader-text@${VERSION}" repository.url)" = 'git+https://github.com/p-sebastian/react-native-shader-text.git'
+          test -n "$(npm view "@p-sebastian/react-native-shader-text@${VERSION}" dist.integrity)"
+          test -n "$(npm view "@p-sebastian/react-native-shader-text@${VERSION}" dist.attestations.url)"
+          gh release view "v${VERSION}" >/dev/null 2>&1 || gh release create "v${VERSION}" --generate-notes --verify-tag
+          {
+            echo "## @p-sebastian/react-native-shader-text ${VERSION}"
+            echo "- Source: ${GITHUB_SHA}"
+            echo "- Tag: v${VERSION}"
+            echo "- npm: https://www.npmjs.com/package/@p-sebastian/react-native-shader-text/v/${VERSION}"
+            echo "- Release: https://github.com/${GITHUB_REPOSITORY}/releases/tag/v${VERSION}"
+            echo "- Run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          } >> "$GITHUB_STEP_SUMMARY"

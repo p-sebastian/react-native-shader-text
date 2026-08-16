@@ -1,0 +1,30 @@
+{
+  "uiViewClassName": "ShaderText",
+  "supportsRawText": false,
+  "bubblingEventTypes": {},
+  "directEventTypes": {},
+  "validAttributes": {
+    "segments": true,
+    "animation": true,
+    "blurOutDuration": true,
+    "delay": true,
+    "duration": true,
+    "fontSize": true,
+    "fontWeight": true,
+    "italic": true,
+    "textAlign": true,
+    "textColor": true,
+    "lineHeight": true,
+    "numberOfLines": true,
+    "ellipsizeMode": true,
+    "allowFontScaling": true,
+    "maxFontSizeMultiplier": true,
+    "combinedAccessibilityLabel": true,
+    "revealBlurRadius": true,
+    "revealDuration": true,
+    "onAnimationStart": true,
+    "onAnimationEnd": true,
+    "onContentHeightChange": true,
+    "hybridRef": true
+  }
+}
